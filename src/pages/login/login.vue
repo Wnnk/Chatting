@@ -2,36 +2,72 @@
   <view class="contents">
     <view class="top-tar">
       <view class="top-bar-right">
-        <view class="text">注册</view>
+        <view class="text" @click="goSignUp">注册</view>
       </view>
     </view>
 
     <view class="logo">
-      <img src="../../static/img/login/logo.png" >
+      <img src="../../static/img/login/logo.png" @click="test">
     </view>
 
     <view class="main">
       <view class="title">登录</view>
       <view class="slogan">你好，欢迎登录</view>
       <view class="inputs">
-        <input type="text" placeholder="用户名/邮箱" class="user" placeholder-style="color:#aaa;font-weight:400"/>
-        <input type="password" placeholder="密码" class="psw" placeholder-style="color:#aaa;font-weight:400"/> 
+        <input type="text" placeholder="用户名/邮箱" class="user" placeholder-style="color:#aaa;font-weight:400" v-model="user.data"/>
+        <input type="password" placeholder="密码" class="psw" placeholder-style="color:#aaa;font-weight:400" v-model="user.pwd"/> 
       </view>
-      <view class="tips">输入用户名或密码错误</view>
+      <view class="tips" v-show="isMistake">输入用户名或密码错误</view>
     </view>
-    <view class="submit">登录</view>
+    <view class="submit" @click="useLogin">登录</view>
   </view>
 </template>
 
 
 
 <script>
+import store from "../../store/index"
 export default {
   data(){
     return{
-
+      token:"",
+      user:{
+        data:"",
+        pwd:"",
+      },
+      isMistake:false,
     }
-  }
+  },
+  methods: {
+    goSignUp(){
+      uni.navigateTo({
+        url:"./signup"
+      })
+    },
+    useLogin(){
+     uni.request({
+      url:"http://192.168.1.102:3000/singin/match",
+      data:{
+        data:this.user.data,
+        pwd:this.user.pwd
+      },
+      method:"POST",
+      success:(data)=>{
+        const result = data.data
+        if (result.status === 400) {
+          this.isMistake = true
+        }else if (result.status ===200) {
+          this.isMistake = false
+          store.commit("GET_USER",result.back)
+          localStorage.setItem("token",result.back.token)
+          uni.redirectTo({
+            url:"../index/index"
+          })
+        }
+      }
+     })
+    }
+  },
 }
 </script>
 

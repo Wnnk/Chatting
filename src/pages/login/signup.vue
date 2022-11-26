@@ -3,10 +3,10 @@
   <view class="contents">
     <view class="top-tar">
       <view class="top-bar-left">
-        <img src="../../static/img/common/back.png" class="back-img">
+        <img src="../../static/img/common/back.png" class="back-img" @click="goLogin">
       </view>
       <view class="top-bar-right">
-        <view class="text">注册</view>
+        <view class="text" @click="goLogin">登录</view>
       </view>
     </view>
 
@@ -18,8 +18,13 @@
       <view class="title">注册</view>
       <view class="inputs">
         <view class="inputs-div">
-          <input type="text" placeholder="用户名" class="user" placeholder-style="color:#aaa;font-weight:400"/>
-          <view class="employ" v-if="employ">已有用户名</view>
+          <input type="text" 
+          placeholder="用户名" 
+          class="user" 
+          placeholder-style="color:#aaa;font-weight:400"
+          v-model="user.name"
+          @blur="isUser" />
+          <view class="employ" v-if="employName">已有用户名</view>
           <img src="../../static/img/login/right1.png" class="ok" v-if="isuser">
         </view>
         <view class="inputs-div">
@@ -27,15 +32,15 @@
           class="email" 
           placeholder-style="color:#aaa;font-weight:400"
           @blur="isEmail"
+          v-model="user.mail"
           />
-          <view class="employ" v-if="employ">已占用</view>
+          <view class="employ" v-if="employEmail">已占用</view>
           <img src="../../static/img/login/right1.png" class="ok" v-if="isemail">
           <view class="invalid" v-if="invalid">邮箱无效</view>
         </view>
 
-        <view class="inputs-div">
-          <input :type="type" placeholder="密码" class="psw" placeholder-style="color:#aaa;font-weight:400"/>
-          <view class="employ" v-if="employ">已占用</view>
+        <view class="inputs-div" >
+          <input :type="type" placeholder="密码" class="psw" placeholder-style="color:#aaa;font-weight:400" @input="handleput"/>
           <img :src="lookurl" class="look" @click="looks">
 
         </view>
@@ -43,14 +48,15 @@
         
       </view>
     </view>
-    <view class="submit">登录</view>
+    <view class="submit" @click="signUp">注册</view>
   </view>
 </template>
 
 
 
 <script>
-import { tr } from '@dcloudio/vue-cli-plugin-uni/packages/postcss/tags'
+
+
 export default {
   data(){
     return{
@@ -59,9 +65,15 @@ export default {
       isemail:false,
       look:false,
       invalid:false,
-      employ:false,
+      employName:false,
+      employEmail:false,
       lookurl:"../../static/img/login/biyan.png",
       email:"",
+      user:{
+        name:"",
+        pwd:"",
+        mail:"",
+      },
     }
   },
   methods:{
@@ -81,12 +93,84 @@ export default {
       this.email = e.detail.value
       if (this.email.length>0) {
         if (reg.test(this.email)) {
-          this.invalid = false
-          this.isemail = true
+          this.emailCount()
         }else{
           this.invalid = true
         }
       }
+    },
+    emailCount(){
+      // 验证是否存在相同邮箱
+      if (this.invalid == false) {
+        uni.request({
+           url:"http://192.168.1.102:3000/singup/judge",
+        data:{
+          data:this.user.mail,
+          type:"email",
+        },
+        method:'POST',
+        success:(data)=>{
+          const result = data.data.result
+          if (result > 0) {
+            this.employEmail =true
+            this.isemail = false
+          }else{
+            this.employEmail = false
+            this.isemail = true
+          }
+        }
+        })
+      }
+    },
+    isUser(){
+      uni.request({
+        url:"http://192.168.1.102:3000/singup/judge",
+        data:{
+          data:this.user.name,
+          type:"name",
+        },
+        method:'POST',
+        success:(data)=>{
+          const result = data.data.result
+          if (result > 0) {
+            this.employName = true
+
+          }else{
+            this.employName = false
+            this.isuser = true
+          }
+        }
+      })
+    },
+    goLogin(){
+      uni.redirectTo({
+        url:"./login"
+      })
+    },
+    handleput(e){
+      this.user.pwd = e.target.value
+    },
+    // 注册
+    signUp(){
+      if (this.isuser ===true && this.isemail === true) {
+        uni.request({
+        url:"http://192.168.1.102:3000/singup/add",
+        data:{
+          name:this.user.name,
+          pwd:this.user.pwd,
+          mail:this.user.mail,
+          },
+          method:"POST",
+          success:(data)=>{
+            if (data.data.status === 200) {
+              goLogin()
+            }else if(data.data.status === 500){
+              alert("服务器错误，请稍后重试")
+            }
+          }
+        })
+      }
+      
     }
 
   }
